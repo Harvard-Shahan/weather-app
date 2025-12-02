@@ -1,4 +1,5 @@
 import { Country, State, City } from 'country-state-city';
+import "./style.css";
 //display all the countries
 const countries = Country.getAllCountries();
 const body=document.querySelector('.body');
@@ -27,7 +28,7 @@ defaultCityValue.selected=true;
 defaultCityValue.hidden=true;
 const countryinput=document.querySelector("#country-choice")
 addChoices(countryinput,countries)
-let countryval="";let stateval="";
+let countryval="";let stateval="";let cityval="";
 countryinput.addEventListener("change",(event)=>{
     if(countryinput.value!="") //if a valid choice of country is selected
     {   countryval=countryinput.value //save the choice
@@ -70,5 +71,50 @@ btn.addEventListener("click",()=>{
     //validate choices
     //retrieve values to make a request.
 console.log(countryval+ stateval)
+let countryName=Country.getCountryByCode(countryval);
+let stateName=State.getStateByCodeAndCountry(stateval,countryval);
+console.log(countryName.name)
+console.log(stateName.name);
+// fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${stateName.name},${countryName.name}?key=${key}`)
+// .then(function(response){
+//     return response.json()
+// }).then(function(response){
+//     console.log(response);
+// })
+const rq=(getWeatherData(stateName.latitude,stateName.longitude));
+console.log(rq);
 })
-
+var map = L.map('map').setView([51.505, -0.09], 13);    
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map);
+map.on("click",async(e)=>{
+    const {lat,lng}=e.latlng;
+    console.log(lat+"  "+lng);
+    getWeatherData(lat,lng);
+})
+async function getWeatherData(countryName,stateName) {
+    try{
+    const weatherrequest=fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${countryName},${stateName}?key=${key}`);
+    const response=(await weatherrequest)
+    const data= await response.json();
+    const current=data.currentConditions;
+    console.log(current)
+    const weatherHTML=`<b>Weather</b>
+    <br>
+    Temp:${((current.temp-32)*5/9).toFixed(2)}*C<br>
+    Conditions:${current.conditions}<br>
+    Wind:${current.windspeed} km/h`;
+    L.marker([countryName,stateName])
+    .addTo(map)
+    .bindPopup(weatherHTML)
+    .openPopup();
+    return data;
+     }
+     catch(err){
+        console.log(err);
+        return "Error-could not receive data";
+}
+     
+}
